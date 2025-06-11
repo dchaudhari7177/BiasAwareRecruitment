@@ -1,0 +1,8 @@
+flask
+flask-cors
+pandas
+scikit-learn
+fairlearn
+aif360
+nltk
+pdfminer.six
