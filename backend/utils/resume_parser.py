@@ -1,9 +1,8 @@
-# backend/utils/resume_parser.py
+from pdfminer.high_level import extract_text
 
-import pdfminer.high_level
-
-def parse_resume(file):
-    text = pdfminer.high_level.extract_text(file)
+def parse_resume(file_storage):
+    # Use file_storage.stream to extract text
+    text = extract_text(file_storage.stream)
     return {
         'raw_text': text,
         'features': extract_features(text)
