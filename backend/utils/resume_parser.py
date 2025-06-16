@@ -5,10 +5,16 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import logging
 import io
+import requests
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# Groq API configuration
+GROQ_API_KEY = "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"
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 # Download required NLTK data
 try:
@@ -37,26 +43,21 @@ def parse_resume(file):
         if not text:
             raise ValueError("No text could be extracted from the PDF")
         
-        # Extract basic information
-        skills = extract_skills(text)
-        education = extract_education(text)
-        experience = extract_experience(text)
+        # Use Groq to analyze and structure the resume
+        structured_data = analyze_with_groq(text)
         
-        # Calculate derived metrics
-        education_level = calculate_education_level(education)
-        years_experience = calculate_years_experience(experience)
-        skills_match = calculate_skills_match(skills)
-        project_complexity = calculate_project_complexity(text)
-        
+        # Extract information from structured data
         info = {
             'text': text,
-            'skills': skills,
-            'education': education,
-            'experience': experience,
-            'education_level': education_level,
-            'years_experience': years_experience,
-            'skills_match': skills_match,
-            'project_complexity': project_complexity
+            'education': structured_data.get('education', []),
+            'experience': structured_data.get('experience', []),
+            'skills': structured_data.get('skills', []),
+            'certifications': structured_data.get('certifications', []),
+            'languages': structured_data.get('languages', []),
+            'education_level': calculate_education_level(structured_data.get('education', [])),
+            'years_experience': calculate_years_experience(structured_data.get('experience', [])),
+            'skills_match': calculate_skills_match(structured_data.get('skills', [])),
+            'project_complexity': calculate_project_complexity(structured_data.get('experience', []))
         }
         
         logger.debug(f"Parsing completed successfully")
@@ -66,22 +67,125 @@ def parse_resume(file):
         logger.error(f"Error parsing resume: {str(e)}")
         raise
 
-def extract_skills(text):
-    """Extract skills from text"""
-    skills = []
-    # Common programming languages and technologies
-    skill_patterns = [
-        r'\b(python|java|javascript|c\+\+|c#|ruby|php)\b',
-        r'\b(html|css|react|angular|vue|node\.js)\b',
-        r'\b(sql|mysql|postgresql|mongodb|oracle)\b',
-        r'\b(aws|azure|gcp|docker|kubernetes)\b'
-    ]
+def analyze_with_groq(text):
+    """Use Groq API to analyze and structure resume content"""
+    try:
+        prompt = f"""Analyze the following resume and extract information into structured sections. 
+        Return the data in JSON format with the following structure:
+        {{
+            "education": [list of education entries],
+            "experience": [list of experience entries],
+            "skills": [list of technical skills],
+            "certifications": [list of certifications],
+            "languages": [list of languages and proficiency]
+        }}
+
+        Resume text:
+        {text}
+        """
+
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "model": "mixtral-8x7b-32768",
+            "messages": [
+                {"role": "system", "content": "You are a resume parser that extracts structured information from resumes."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.1,
+            "max_tokens": 4000
+        }
+
+        response = requests.post(GROQ_API_URL, headers=headers, json=data)
+        response.raise_for_status()
+        
+        result = response.json()
+        structured_data = json.loads(result['choices'][0]['message']['content'])
+        
+        return structured_data
+
+    except Exception as e:
+        logger.error(f"Error in Groq API call: {str(e)}")
+        # Fallback to basic parsing if Groq fails
+        return {
+            'education': extract_education(text),
+            'experience': extract_experience(text),
+            'skills': extract_skills(text),
+            'certifications': extract_certifications(text),
+            'languages': extract_languages(text)
+        }
+
+def split_into_sections(text):
+    """Split resume text into sections"""
+    sections = {
+        'education': '',
+        'experience': '',
+        'skills': '',
+        'certifications': '',
+        'languages': ''
+    }
     
-    for pattern in skill_patterns:
-        matches = re.finditer(pattern, text.lower())
-        skills.extend([match.group() for match in matches])
+    # Define section headers with more variations
+    section_headers = {
+        'education': ['education', 'academic', 'qualification', 'degree', 'diploma', 'certificate', 'school'],
+        'experience': ['experience', 'work', 'employment', 'professional', 'internship', 'project'],
+        'skills': ['skills', 'technical skills', 'expertise', 'programming', 'technologies', 'tools'],
+        'certifications': ['certifications', 'certificates', 'certified', 'certification'],
+        'languages': ['languages', 'language proficiency', 'language skills']
+    }
     
-    return list(set(skills))
+    # Split text into lines and clean them
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
+    
+    current_section = None
+    current_content = []
+    section_found = False
+    
+    for i, line in enumerate(lines):
+        line_lower = line.lower()
+        
+        # Check if line is a section header
+        is_header = False
+        for section, headers in section_headers.items():
+            if any(header in line_lower for header in headers):
+                # Save previous section content
+                if current_section and current_content:
+                    sections[current_section] = '\n'.join(current_content)
+                current_section = section
+                current_content = []
+                is_header = True
+                section_found = True
+                break
+        
+        # If no section header found yet, try to detect section based on content
+        if not section_found:
+            if any(edu_word in line_lower for edu_word in ['university', 'college', 'school', 'b.tech', 'm.tech', 'phd']):
+                current_section = 'education'
+                section_found = True
+            elif any(exp_word in line_lower for exp_word in ['developer', 'engineer', 'intern', 'worked', 'experience']):
+                current_section = 'experience'
+                section_found = True
+            elif any(skill_word in line_lower for skill_word in ['python', 'java', 'javascript', 'c++', 'html', 'css']):
+                current_section = 'skills'
+                section_found = True
+            elif any(cert_word in line_lower for cert_word in ['certification', 'certified', 'certificate']):
+                current_section = 'certifications'
+                section_found = True
+            elif any(lang_word in line_lower for lang_word in ['language', 'fluent', 'native', 'proficient']):
+                current_section = 'languages'
+                section_found = True
+        
+        if current_section:
+            current_content.append(line)
+    
+    # Save last section
+    if current_section and current_content:
+        sections[current_section] = '\n'.join(current_content)
+    
+    return sections
 
 def extract_education(text):
     """Extract education information"""
@@ -89,10 +193,11 @@ def extract_education(text):
     edu_patterns = [
         r'(?i)(bachelor|master|phd|b\.?s\.?|m\.?s\.?|b\.?e\.?|m\.?e\.?|b\.?tech|m\.?tech)',
         r'(?i)(university|college|institute|school)',
-        r'(?i)(xth|xiith|high school|secondary school)'
+        r'(?i)(xth|xiith|high school|secondary school)',
+        r'(?i)(diploma|certificate)',
+        r'(?i)(ssc|hsc|cbse|icse)'
     ]
     
-    # Split text into lines and process each line
     lines = text.split('\n')
     current_edu = []
     
@@ -116,31 +221,16 @@ def extract_education(text):
                 current_edu = []
             current_edu.append(line)
         elif current_edu and not is_project:
-            # Only add non-project related lines to current education entry
             if not any(keyword in line.lower() for keyword in [
                 'developed', 'project', 'platform', 'solution', 'application',
                 'integrated', 'implemented', 'created', 'built', 'designed'
             ]):
                 current_edu.append(line)
     
-    # Add the last education entry if exists
     if current_edu:
         education.append(' '.join(current_edu))
     
-    # Clean up education entries
-    cleaned_education = []
-    for edu in education:
-        # Remove any remaining project-related content
-        edu_lines = edu.split('.')
-        edu_lines = [line.strip() for line in edu_lines if line.strip()]
-        edu_lines = [line for line in edu_lines if not any(keyword in line.lower() for keyword in [
-            'developed', 'project', 'platform', 'solution', 'application',
-            'integrated', 'implemented', 'created', 'built', 'designed'
-        ])]
-        if edu_lines:
-            cleaned_education.append('. '.join(edu_lines))
-    
-    return cleaned_education
+    return education
 
 def extract_experience(text):
     """Extract experience information"""
@@ -151,18 +241,116 @@ def extract_experience(text):
         r'(\d+)\s*(?:years?|yrs?)\s*(?:in)?\s*the\s*field'
     ]
     
-    for pattern in exp_patterns:
-        matches = re.finditer(pattern, text.lower())
-        experience.extend([match.group() for match in matches])
+    lines = text.split('\n')
+    current_exp = []
     
-    return list(set(experience))
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Check if line contains experience indicators
+        is_experience = any(re.search(pattern, line) for pattern in exp_patterns) or any(keyword in line.lower() for keyword in [
+            'developer', 'engineer', 'analyst', 'consultant', 'manager',
+            'intern', 'internship', 'worked', 'working', 'responsibilities'
+        ])
+        
+        if is_experience:
+            if current_exp:
+                experience.append(' '.join(current_exp))
+                current_exp = []
+            current_exp.append(line)
+        elif current_exp:
+            current_exp.append(line)
+    
+    if current_exp:
+        experience.append(' '.join(current_exp))
+    
+    return experience
+
+def extract_skills(text):
+    """Extract skills from text"""
+    skills = []
+    skill_categories = {
+        'programming': ['python', 'java', 'javascript', 'c++', 'c#', 'ruby', 'php', 'c', 'sql'],
+        'web': ['html', 'css', 'react', 'angular', 'vue', 'node.js', 'express', 'next.js', 'tailwind', 'bootstrap'],
+        'database': ['mongodb', 'mysql', 'postgresql', 'oracle', 'firebase'],
+        'cloud': ['aws', 'azure', 'gcp', 'docker', 'kubernetes'],
+        'ml': ['tensorflow', 'pytorch', 'scikit-learn', 'opencv', 'resnet'],
+        'mobile': ['android', 'ios', 'react native', 'flutter'],
+        'tools': ['git', 'github', 'jira', 'jenkins', 'linux', 'unix']
+    }
+    
+    # First try to extract skills from bullet points or lists
+    lines = text.split('\n')
+    for line in lines:
+        line = line.strip().lower()
+        if line.startswith(('•', '◦', '-', '*', '○')):
+            for category, tech_skills in skill_categories.items():
+                for skill in tech_skills:
+                    if skill in line:
+                        skills.append(skill)
+    
+    # If no skills found in bullet points, search in the entire text
+    if not skills:
+        text_lower = text.lower()
+        for category, tech_skills in skill_categories.items():
+            for skill in tech_skills:
+                if skill in text_lower:
+                    skills.append(skill)
+    
+    return list(set(skills))
+
+def extract_certifications(text):
+    """Extract certification information"""
+    certifications = []
+    cert_patterns = [
+        r'(?i)certification',
+        r'(?i)certified',
+        r'(?i)certificate'
+    ]
+    
+    lines = text.split('\n')
+    for line in lines:
+        line = line.strip()
+        if any(re.search(pattern, line) for pattern in cert_patterns):
+            # Clean up the certification entry
+            cert = re.sub(r'[•◦○-]', '', line).strip()
+            if cert:
+                certifications.append(cert)
+    
+    return certifications
+
+def extract_languages(text):
+    """Extract language proficiency information"""
+    languages = []
+    lang_patterns = [
+        r'(?i)language',
+        r'(?i)fluent',
+        r'(?i)native',
+        r'(?i)proficient'
+    ]
+    
+    lines = text.split('\n')
+    for line in lines:
+        line = line.strip()
+        if any(re.search(pattern, line) for pattern in lang_patterns):
+            # Clean up the language entry
+            lang = re.sub(r'[•◦○-]', '', line).strip()
+            if lang:
+                languages.append(lang)
+    
+    return languages
 
 def calculate_education_level(education):
     """Calculate education level score (0-3)"""
     if not education:
         return 0
     
-    education_text = ' '.join(education).lower()
+    if isinstance(education, list):
+        education_text = ' '.join(education).lower()
+    else:
+        education_text = str(education).lower()
     
     if any(word in education_text for word in ['phd', 'doctorate']):
         return 3
@@ -178,9 +366,14 @@ def calculate_years_experience(experience):
     if not experience:
         return 0
     
+    if isinstance(experience, list):
+        experience_text = ' '.join(experience)
+    else:
+        experience_text = str(experience)
+    
     # Extract numbers from experience strings
     years = []
-    for exp in experience:
+    for exp in experience_text.split():
         match = re.search(r'(\d+)', exp)
         if match:
             years.append(int(match.group(1)))
@@ -191,6 +384,11 @@ def calculate_skills_match(skills):
     """Calculate skills match score (0-1)"""
     if not skills:
         return 0
+    
+    if isinstance(skills, list):
+        skills_text = ' '.join(skills).lower()
+    else:
+        skills_text = str(skills).lower()
     
     # Define required skills
     required_skills = {
@@ -205,14 +403,22 @@ def calculate_skills_match(skills):
     total = 0
     
     for category, required in required_skills.items():
-        category_matches = sum(1 for skill in skills if skill.lower() in required)
+        category_matches = sum(1 for skill in required if skill in skills_text)
         matches += category_matches
         total += len(required)
     
     return matches / total if total > 0 else 0
 
-def calculate_project_complexity(text):
+def calculate_project_complexity(experience):
     """Calculate project complexity score (0-3)"""
+    if not experience:
+        return 0
+    
+    if isinstance(experience, list):
+        text = ' '.join(experience)
+    else:
+        text = str(experience)
+    
     # Look for project-related keywords and indicators
     project_indicators = {
         'complex': ['architecture', 'design', 'lead', 'manage', 'implement'],
