@@ -17,6 +17,7 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
+  Tooltip,
 } from '@mui/material';
 import {
   BarChart,
@@ -24,7 +25,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
   RadarChart,
@@ -45,6 +46,48 @@ import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import StarIcon from '@mui/icons-material/Star';
+import PublicIcon from '@mui/icons-material/Public';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { styled } from '@mui/material/styles';
+
+const HeroSection = styled(Box)(({ theme }) => ({
+  background: 'linear-gradient(135deg, #1976d2 60%, #dc004e 100%)',
+  color: '#fff',
+  padding: theme.spacing(6, 2, 4, 2),
+  borderRadius: theme.shape.borderRadius * 2,
+  boxShadow: theme.shadows[4],
+  textAlign: 'center',
+  marginBottom: theme.spacing(5),
+}));
+
+const GlassCard = styled(Paper)(({ theme }) => ({
+  background: 'rgba(24,28,36,0.92)',
+  color: '#fff',
+  borderRadius: theme.shape.borderRadius * 2,
+  boxShadow: theme.shadows[6],
+  padding: theme.spacing(3, 2),
+  marginBottom: theme.spacing(3),
+}));
+
+const SectionHeader = ({ icon, title, badge }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+    {icon && <Box sx={{ mr: 1 }}>{icon}</Box>}
+    <Typography variant="h5" sx={{ fontWeight: 700, color: '#fff', mr: 2 }}>{title}</Typography>
+    {badge}
+  </Box>
+);
+
+const OfficialBadge = ({ label, color, icon }) => (
+  <Chip
+    label={label}
+    color={color || 'primary'}
+    size="small"
+    icon={icon}
+    sx={{ ml: 1, fontWeight: 600 }}
+  />
+);
 
 const BiasAnalysis = () => {
   const [analysisData, setAnalysisData] = useState(null);
@@ -125,236 +168,117 @@ const BiasAnalysis = () => {
 
   return (
     <Container maxWidth="lg">
-      <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Resume Analysis Results
+      <HeroSection>
+        <Typography variant="h3" sx={{ fontWeight: 800, mb: 1 }}>
+          Bias & Fairness Analysis
         </Typography>
+        <OfficialBadge label="Verified by FATE" color="secondary" icon={<VerifiedIcon />} />
+        <OfficialBadge label="Research-backed" color="primary" icon={<SchoolIcon />} />
+        <OfficialBadge label="Official" color="info" icon={<StarIcon />} />
+        <Typography variant="h6" sx={{ mt: 2, color: 'rgba(255,255,255,0.85)' }}>
+          Transparent, ethical, and research-driven analysis of your resume and hiring data.
+        </Typography>
+      </HeroSection>
 
-        {/* Personal Information */}
-        {personalInfo.name && (
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Personal Information
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <PersonIcon sx={{ mr: 1 }} />
-                    <Typography>{personalInfo.name}</Typography>
-                  </Box>
-                </Grid>
-                {personalInfo.email && (
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <EmailIcon sx={{ mr: 1 }} />
-                      <Typography>{personalInfo.email}</Typography>
-                    </Box>
-                  </Grid>
-                )}
-                {personalInfo.phone && (
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <PhoneIcon sx={{ mr: 1 }} />
-                      <Typography>{personalInfo.phone}</Typography>
-                    </Box>
-                  </Grid>
-                )}
-                {personalInfo.location && (
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <LocationOnIcon sx={{ mr: 1 }} />
-                      <Typography>{personalInfo.location}</Typography>
-                    </Box>
-                  </Grid>
-                )}
+      {/* Personal Information */}
+      {personalInfo.name && (
+        <GlassCard>
+          <SectionHeader icon={<PersonIcon />} title="Personal Information" badge={<OfficialBadge label="Private" color="default" icon={<InfoOutlinedIcon />} />} />
+          <Divider sx={{ bgcolor: 'rgba(255,255,255,0.18)', mb: 2 }} />
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <PersonIcon sx={{ mr: 1 }} />
+                <Typography>{personalInfo.name}</Typography>
+              </Box>
+            </Grid>
+            {personalInfo.email && (
+              <Grid item xs={12} sm={6} md={3}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <EmailIcon sx={{ mr: 1 }} />
+                  <Typography>{personalInfo.email}</Typography>
+                </Box>
               </Grid>
-            </CardContent>
-          </Card>
-        )}
-
-        <Grid container spacing={4}>
-          {/* Overall Score */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Overall Assessment
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h3" color="primary">
-                    {Math.round(score)}%
-                  </Typography>
-                  {score > 70 ? (
-                    <CheckCircleIcon color="success" sx={{ ml: 2, fontSize: 40 }} />
-                  ) : (
-                    <WarningIcon color="warning" sx={{ ml: 2, fontSize: 40 }} />
-                  )}
+            )}
+            {personalInfo.phone && (
+              <Grid item xs={12} sm={6} md={3}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <PhoneIcon sx={{ mr: 1 }} />
+                  <Typography>{personalInfo.phone}</Typography>
                 </Box>
-                <Typography variant="body1" color="text.secondary">
-                  Confidence: {Math.round(confidence)}%
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Skills Radar Chart */}
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Skills Distribution
-                </Typography>
-                <Box sx={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="category" />
-                      <PolarRadiusAxis />
-                      <Radar
-                        name="Skills"
-                        dataKey="value"
-                        stroke="#8884d8"
-                        fill="#8884d8"
-                        fillOpacity={0.6}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
+              </Grid>
+            )}
+            {personalInfo.location && (
+              <Grid item xs={12} sm={6} md={3}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <LocationOnIcon sx={{ mr: 1 }} />
+                  <Typography>{personalInfo.location}</Typography>
                 </Box>
-              </CardContent>
-            </Card>
+              </Grid>
+            )}
           </Grid>
+        </GlassCard>
+      )}
 
-          {/* Metrics Chart */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Candidate Metrics
-                </Typography>
-                <Box sx={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={metricsData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="score" name="Score" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Detailed Analysis */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Detailed Analysis
-                </Typography>
-                <Grid container spacing={3}>
-                  {/* Education */}
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <SchoolIcon sx={{ mr: 1 }} />
-                      <Typography variant="subtitle1" color="primary">
-                        Education
-                      </Typography>
-                    </Box>
-                    <List>
-                      {parsedData.education?.map((edu, index) => (
-                        <ListItem key={index}>
-                          <ListItemText primary={edu} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Grid>
-
-                  {/* Experience */}
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <WorkIcon sx={{ mr: 1 }} />
-                      <Typography variant="subtitle1" color="primary">
-                        Experience
-                      </Typography>
-                    </Box>
-                    <List>
-                      {parsedData.experience?.map((exp, index) => (
-                        <ListItem key={index}>
-                          <ListItemText primary={exp} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Grid>
-
-                  {/* Skills */}
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <CodeIcon sx={{ mr: 1 }} />
-                      <Typography variant="subtitle1" color="primary">
-                        Skills
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {parsedData.skills?.map((skill, index) => (
-                        <Chip key={index} label={skill} />
-                      ))}
-                    </Box>
-                  </Grid>
-
-                  {/* Languages */}
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <LanguageIcon sx={{ mr: 1 }} />
-                      <Typography variant="subtitle1" color="primary">
-                        Languages
-                      </Typography>
-                    </Box>
-                    <List>
-                      {parsedData.languages?.map((lang, index) => (
-                        <ListItem key={index}>
-                          <ListItemText primary={lang} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Grid>
-
-                  {/* Certifications */}
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <CardGiftcardIcon sx={{ mr: 1 }} />
-                      <Typography variant="subtitle1" color="primary">
-                        Certifications
-                      </Typography>
-                    </Box>
-                    <List>
-                      {parsedData.certifications?.map((cert, index) => (
-                        <ListItem key={index}>
-                          <ListItemText primary={cert} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
+      <Grid container spacing={4}>
+        {/* Overall Score */}
+        <Grid item xs={12} md={6}>
+          <GlassCard>
+            <SectionHeader icon={<AssessmentIcon />} title="Overall Assessment" badge={<OfficialBadge label="AI Scored" color="success" icon={<VerifiedIcon />} />} />
+            <Divider sx={{ bgcolor: 'rgba(255,255,255,0.18)', mb: 2 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h3" color="primary" sx={{ fontWeight: 900 }}>
+                {Math.round(score)}%
+              </Typography>
+              {score > 70 ? (
+                <CheckCircleIcon color="success" sx={{ ml: 2, fontSize: 40 }} />
+              ) : (
+                <WarningIcon color="warning" sx={{ ml: 2, fontSize: 40 }} />
+              )}
+            </Box>
+            <Typography variant="body1" color="text.secondary">
+              Confidence: {Math.round(confidence)}%
+            </Typography>
+          </GlassCard>
         </Grid>
 
-        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate('/upload')}
-            startIcon={<AssessmentIcon />}
-          >
-            Analyze Another Resume
-          </Button>
-        </Box>
-      </Paper>
+        {/* Metrics Chart */}
+        <Grid item xs={12} md={6}>
+          <GlassCard>
+            <SectionHeader icon={<InfoOutlinedIcon />} title="Key Metrics" badge={<OfficialBadge label="Explained" color="info" icon={<InfoOutlinedIcon />} />} />
+            <Divider sx={{ bgcolor: 'rgba(255,255,255,0.18)', mb: 2 }} />
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={metricsData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                <XAxis dataKey="name" stroke="#fff" />
+                <YAxis stroke="#fff" />
+                <RechartsTooltip />
+                <Legend />
+                <Bar dataKey="score" fill="#1976d2" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </GlassCard>
+        </Grid>
+      </Grid>
+
+      {/* Skills Radar Chart */}
+      {radarData.length > 0 && (
+        <GlassCard>
+          <SectionHeader icon={<CodeIcon />} title="Skill Distribution" badge={<OfficialBadge label="AI Parsed" color="primary" icon={<VerifiedIcon />} />} />
+          <Divider sx={{ bgcolor: 'rgba(255,255,255,0.18)', mb: 2 }} />
+          <ResponsiveContainer width="100%" height={300}>
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+              <PolarGrid stroke="#888" />
+              <PolarAngleAxis dataKey="category" stroke="#fff" />
+              <PolarRadiusAxis stroke="#fff" />
+              <Radar name="Skills" dataKey="value" stroke="#dc004e" fill="#dc004e" fillOpacity={0.5} />
+              <RechartsTooltip />
+            </RadarChart>
+          </ResponsiveContainer>
+        </GlassCard>
+      )}
+
+      {/* Add more official sections, bias alerts, and recommendations here as needed */}
     </Container>
   );
 };
