@@ -192,7 +192,6 @@ export default function LandingPage() {
               <Typography>
                 “A groundbreaking step towards fairness and transparency in AI hiring. The FATE framework is implemented with real impact.”
               </Typography>
-              <Typography variant="subtitle2" sx={{ mt: 1, color: '#b0b8c1' }}>— Dr. A. Researcher, IEEE Ethics Board</Typography>
             </TestimonialCard>
           </Grid>
           <Grid item xs={12} md={6}>
@@ -201,7 +200,6 @@ export default function LandingPage() {
               <Typography>
                 “BiasAwareRecruitment sets a new standard for responsible AI in recruitment. Highly recommended for organizations and researchers.”
               </Typography>
-              <Typography variant="subtitle2" sx={{ mt: 1, color: '#b0b8c1' }}>— Prof. B. Scientist, PES University</Typography>
             </TestimonialCard>
           </Grid>
         </Grid>
