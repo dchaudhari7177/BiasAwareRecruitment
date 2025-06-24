@@ -51,6 +51,7 @@ import StarIcon from '@mui/icons-material/Star';
 import PublicIcon from '@mui/icons-material/Public';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { styled } from '@mui/material/styles';
+import { pushDashboardActivity } from './Dashboard';
 
 const HeroSection = styled(Box)(({ theme }) => ({
   background: 'linear-gradient(135deg, #1976d2 60%, #dc004e 100%)',
@@ -89,6 +90,16 @@ const OfficialBadge = ({ label, color, icon }) => (
   />
 );
 
+function pushFairnessMetricsHistory(metrics) {
+  const key = 'fairnessMetricsHistory';
+  const history = JSON.parse(localStorage.getItem(key) || '[]');
+  // Avoid duplicate for same timestamp/score
+  if (!history.find(h => h.score === metrics.score && h.confidence === metrics.confidence)) {
+    history.unshift({ ...metrics, timestamp: new Date().toISOString() });
+    localStorage.setItem(key, JSON.stringify(history.slice(0, 20)));
+  }
+}
+
 const BiasAnalysis = () => {
   const [analysisData, setAnalysisData] = useState(null);
   const [error, setError] = useState('');
@@ -104,6 +115,18 @@ const BiasAnalysis = () => {
     try {
       const parsedData = JSON.parse(storedData);
       setAnalysisData(parsedData);
+      // Save fairness metrics to history
+      const features = parsedData.features || {};
+      pushFairnessMetricsHistory({
+        education_level: features.education_level,
+        years_experience: features.years_experience,
+        skills_match: features.skills_match,
+        project_complexity: features.project_complexity,
+        score: parsedData.score,
+        confidence: parsedData.confidence,
+      });
+      // Push dashboard activity
+      pushDashboardActivity({ type: 'analysis', label: 'Bias analysis completed', time: 'just now' });
     } catch (err) {
       console.error('Error parsing analysis results:', err);
       setError('Error loading analysis results');

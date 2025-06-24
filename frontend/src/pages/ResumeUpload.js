@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import axios from 'axios';
+import { pushDashboardActivity } from './Dashboard';
 
 const ResumeUpload = () => {
   const [file, setFile] = useState(null);
@@ -72,7 +73,21 @@ const ResumeUpload = () => {
 
       // Store the analysis results
       localStorage.setItem('analysisResults', JSON.stringify(response.data));
-      
+
+      // Save fairness metrics to history
+      const features = response.data.features || {};
+      pushFairnessMetricsHistory({
+        education_level: features.education_level,
+        years_experience: features.years_experience,
+        skills_match: features.skills_match,
+        project_complexity: features.project_complexity,
+        score: response.data.score,
+        confidence: response.data.confidence,
+      });
+
+      // Push dashboard activity
+      pushDashboardActivity({ type: 'upload', label: 'Resume uploaded', time: 'just now' });
+
       // Navigate to analysis page
       navigate('/analysis');
     } catch (err) {
@@ -162,5 +177,12 @@ const ResumeUpload = () => {
     </Container>
   );
 };
+
+function pushFairnessMetricsHistory(metrics) {
+  const key = 'fairnessMetricsHistory';
+  const history = JSON.parse(localStorage.getItem(key) || '[]');
+  history.unshift({ ...metrics, timestamp: new Date().toISOString() });
+  localStorage.setItem(key, JSON.stringify(history.slice(0, 20)));
+}
 
 export default ResumeUpload; 

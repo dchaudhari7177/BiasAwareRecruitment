@@ -12,6 +12,7 @@ import { useState } from 'react';
 import IconButton from '@mui/material/IconButton';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import Footer from './components/Footer';
 
 function App() {
   const [mode, setMode] = useState('light');
@@ -48,6 +49,7 @@ function App() {
               <Route path="/about" element={<About />} />
             </Routes>
           </main>
+          <Footer />
         </div>
       </Router>
     </ThemeProvider>
