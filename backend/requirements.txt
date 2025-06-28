@@ -12,3 +12,4 @@ pdfminer.six==20221105
 python-dotenv==0.21.1
 gunicorn==20.1.0
 requests==2.31.0
+textblob==0.17.1

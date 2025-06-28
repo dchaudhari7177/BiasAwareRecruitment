@@ -50,6 +50,9 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import StarIcon from '@mui/icons-material/Star';
 import PublicIcon from '@mui/icons-material/Public';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import GapAnalysisIcon from '@mui/icons-material/CompareArrows';
 import { styled } from '@mui/material/styles';
 import { pushDashboardActivity } from './Dashboard';
 
@@ -189,6 +192,37 @@ const BiasAnalysis = () => {
     value: skills.length,
   }));
 
+  // Extract advanced analysis data
+  const advancedAnalysis = analysisData.advanced_analysis || {};
+  const sentimentAnalysis = advancedAnalysis.sentiment_analysis || {};
+  const skillsGapAnalysis = advancedAnalysis.skills_gap_analysis || {};
+  const successProbability = analysisData.success_probability || 0;
+
+  // Prepare advanced metrics data
+  const advancedMetricsData = [
+    {
+      name: 'Success Probability',
+      value: Math.round(successProbability * 100),
+      max: 100,
+      color: '#4caf50'
+    },
+    {
+      name: 'Skills Match',
+      value: Math.round(skillsGapAnalysis.match_percentage || 0),
+      max: 100,
+      color: '#2196f3'
+    },
+    {
+      name: 'Sentiment Score',
+      value: Math.round((sentimentAnalysis.confidence || 0) * 100),
+      max: 100,
+      color: '#ff9800'
+    }
+  ];
+
+  // Prepare bias indicators
+  const biasIndicators = advancedAnalysis.bias_indicators || [];
+
   return (
     <Container maxWidth="lg">
       <HeroSection>
@@ -301,7 +335,123 @@ const BiasAnalysis = () => {
         </GlassCard>
       )}
 
-      {/* Add more official sections, bias alerts, and recommendations here as needed */}
+      {/* Advanced AI Analysis Section */}
+      <GlassCard>
+        <SectionHeader icon={<AssessmentIcon />} title="Advanced AI Analysis" badge={<OfficialBadge label="AI-Powered" color="secondary" icon={<VerifiedIcon />} />} />
+        <Divider sx={{ bgcolor: 'rgba(255,255,255,0.18)', mb: 2 }} />
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <Box sx={{ textAlign: 'center', p: 2, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+              <Typography variant="h4" sx={{ color: '#4caf50', fontWeight: 800 }}>
+                {Math.round((analysisData.success_probability || 0) * 100)}%
+              </Typography>
+              <Typography variant="subtitle1" sx={{ color: '#b0b8c1' }}>
+                Success Probability
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Box sx={{ textAlign: 'center', p: 2, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+              <Typography variant="h4" sx={{ color: '#2196f3', fontWeight: 800 }}>
+                {(analysisData.advanced_analysis?.skills_gap_analysis?.match_percentage || 0)}%
+              </Typography>
+              <Typography variant="subtitle1" sx={{ color: '#b0b8c1' }}>
+                Skills Match
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Box sx={{ textAlign: 'center', p: 2, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+              <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 800 }}>
+                {(analysisData.advanced_analysis?.sentiment_analysis?.sentiment || 'Neutral')}
+              </Typography>
+              <Typography variant="subtitle1" sx={{ color: '#b0b8c1' }}>
+                Communication Tone
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </GlassCard>
+
+      {/* Bias Detection Alerts */}
+      {biasIndicators.length > 0 && (
+        <GlassCard>
+          <SectionHeader 
+            icon={<WarningIcon />} 
+            title="Bias Detection Alerts" 
+            badge={<OfficialBadge label="Critical" color="warning" icon={<WarningIcon />} />} 
+          />
+          <Divider sx={{ bgcolor: 'rgba(255,255,255,0.18)', mb: 2 }} />
+          <Grid container spacing={2}>
+            {biasIndicators.map((bias, idx) => (
+              <Grid item xs={12} sm={6} md={3} key={idx}>
+                <Alert
+                  severity="warning"
+                  sx={{
+                    background: 'rgba(255,193,7,0.12)',
+                    color: '#ff9800',
+                    borderRadius: 2,
+                    fontWeight: 600,
+                  }}
+                >
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    {bias.replace('_', ' ').toUpperCase()} DETECTED
+                  </Typography>
+                  <Typography variant="body2">
+                    Potential {bias.replace('_', ' ')} bias in resume content
+                  </Typography>
+                </Alert>
+              </Grid>
+            ))}
+          </Grid>
+        </GlassCard>
+      )}
+
+      {/* Skills Gap Details */}
+      {skillsGapAnalysis.missing_skills && skillsGapAnalysis.missing_skills.length > 0 && (
+        <GlassCard>
+          <SectionHeader 
+            icon={<GapAnalysisIcon />} 
+            title="Skills Gap Analysis" 
+            badge={<OfficialBadge label="Detailed" color="info" icon={<InfoOutlinedIcon />} />} 
+          />
+          <Divider sx={{ bgcolor: 'rgba(255,255,255,0.18)', mb: 2 }} />
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" sx={{ color: '#ff6b6b', mb: 2 }}>
+                Missing Skills ({skillsGapAnalysis.missing_skills.length})
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {skillsGapAnalysis.missing_skills.map((skill, idx) => (
+                  <Chip
+                    key={idx}
+                    label={skill}
+                    color="error"
+                    variant="outlined"
+                    size="small"
+                  />
+                ))}
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" sx={{ color: '#4caf50', mb: 2 }}>
+                Strength Areas ({skillsGapAnalysis.strength_areas.length})
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {skillsGapAnalysis.strength_areas.map((skill, idx) => (
+                  <Chip
+                    key={idx}
+                    label={skill}
+                    color="success"
+                    variant="outlined"
+                    size="small"
+                  />
+                ))}
+              </Box>
+            </Grid>
+          </Grid>
+        </GlassCard>
+      )}
     </Container>
   );
 };
