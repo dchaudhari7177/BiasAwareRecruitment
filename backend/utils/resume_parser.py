@@ -1,52 +1,56 @@
+"""
+Resume Parser Utility
+
+This module provides functions to parse resumes, extract structured information,
+and perform feature calculations for candidate evaluation.
+"""
+import os
 import re
+import io
+import json
+import logging
+import requests
+from typing import Any, Dict, List, Optional
 from pdfminer.high_level import extract_text
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
-import logging
-import io
-import requests
-import json
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Groq API configuration
-GROQ_API_KEY = "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"
+# Groq API configuration (use environment variable for security)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 # Download required NLTK data
 try:
-    nltk.download('punkt')
-    nltk.download('stopwords')
+    nltk.download('punkt', quiet=True)
+    nltk.download('stopwords', quiet=True)
 except Exception as e:
     logger.error(f"Error downloading NLTK data: {str(e)}")
 
-def parse_resume(file):
-    """Parse resume file and extract relevant information"""
+def parse_resume(file) -> Dict[str, Any]:
+    """
+    Parse resume file and extract relevant information.
+    Args:
+        file: File-like object containing the resume PDF.
+    Returns:
+        Dictionary with extracted and calculated features.
+    Raises:
+        Exception: If parsing fails.
+    """
     try:
         logger.debug("Starting resume parsing")
-        
-        # Read file content
         file_content = file.read()
         logger.debug(f"Read file content, size: {len(file_content)} bytes")
-        
-        # Create a file-like object from the content
         file_obj = io.BytesIO(file_content)
-        
-        # Extract text from PDF
-        logger.debug("Extracting text from PDF")
         text = extract_text(file_obj)
         logger.debug(f"Extracted text length: {len(text)} characters")
-        
         if not text:
             raise ValueError("No text could be extracted from the PDF")
-        
-        # Use Groq to analyze and structure the resume
         structured_data = analyze_with_groq(text)
-        
-        # Extract information from structured data
         info = {
             'text': text,
             'education': structured_data.get('education', []),
@@ -59,36 +63,37 @@ def parse_resume(file):
             'skills_match': calculate_skills_match(structured_data.get('skills', [])),
             'project_complexity': calculate_project_complexity(structured_data.get('experience', []))
         }
-        
-        logger.debug(f"Parsing completed successfully")
+        logger.debug("Parsing completed successfully")
         return info
-        
     except Exception as e:
         logger.error(f"Error parsing resume: {str(e)}")
         raise
 
-def analyze_with_groq(text):
-    """Use Groq API to analyze and structure resume content"""
+def analyze_with_groq(text: str) -> Dict[str, Any]:
+    """
+    Use Groq API to analyze and structure resume content.
+    Falls back to basic parsing if API fails or key is missing.
+    Args:
+        text: Extracted resume text.
+    Returns:
+        Structured data dictionary.
+    """
+    if not GROQ_API_KEY:
+        logger.warning("GROQ_API_KEY not set. Using fallback parsing.")
+        return {
+            'education': extract_education(text),
+            'experience': extract_experience(text),
+            'skills': extract_skills(text),
+            'certifications': extract_certifications(text),
+            'languages': extract_languages(text)
+        }
     try:
-        prompt = f"""Analyze the following resume and extract information into structured sections. 
-        Return the data in JSON format with the following structure:
-        {{
-            "education": [list of education entries],
-            "experience": [list of experience entries],
-            "skills": [list of technical skills],
-            "certifications": [list of certifications],
-            "languages": [list of languages and proficiency]
-        }}
-
-        Resume text:
-        {text}
-        """
-
+        prompt = f"""Analyze the following resume and extract information into structured sections. \
+        Return the data in JSON format with the following structure:\n\n        {{\n            \"education\": [list of education entries],\n            \"experience\": [list of experience entries],\n            \"skills\": [list of technical skills],\n            \"certifications\": [list of certifications],\n            \"languages\": [list of languages and proficiency]\n        }}\n\n        Resume text:\n        {text}\n        """
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
         }
-
         data = {
             "model": "mixtral-8x7b-32768",
             "messages": [
@@ -98,18 +103,13 @@ def analyze_with_groq(text):
             "temperature": 0.1,
             "max_tokens": 4000
         }
-
         response = requests.post(GROQ_API_URL, headers=headers, json=data)
         response.raise_for_status()
-        
         result = response.json()
         structured_data = json.loads(result['choices'][0]['message']['content'])
-        
         return structured_data
-
     except Exception as e:
-        logger.error(f"Error in Groq API call: {str(e)}")
-        # Fallback to basic parsing if Groq fails
+        logger.error(f"Error in Groq API call: {str(e)}. Using fallback parsing.")
         return {
             'education': extract_education(text),
             'experience': extract_experience(text),
@@ -118,8 +118,14 @@ def analyze_with_groq(text):
             'languages': extract_languages(text)
         }
 
-def split_into_sections(text):
-    """Split resume text into sections"""
+def split_into_sections(text: str) -> Dict[str, str]:
+    """
+    Split resume text into sections based on common headers and content.
+    Args:
+        text: Resume text.
+    Returns:
+        Dictionary mapping section names to their content.
+    """
     sections = {
         'education': '',
         'experience': '',
@@ -127,8 +133,6 @@ def split_into_sections(text):
         'certifications': '',
         'languages': ''
     }
-    
-    # Define section headers with more variations
     section_headers = {
         'education': ['education', 'academic', 'qualification', 'degree', 'diploma', 'certificate', 'school'],
         'experience': ['experience', 'work', 'employment', 'professional', 'internship', 'project'],
@@ -136,22 +140,15 @@ def split_into_sections(text):
         'certifications': ['certifications', 'certificates', 'certified', 'certification'],
         'languages': ['languages', 'language proficiency', 'language skills']
     }
-    
-    # Split text into lines and clean them
     lines = [line.strip() for line in text.split('\n') if line.strip()]
-    
     current_section = None
     current_content = []
     section_found = False
-    
     for i, line in enumerate(lines):
         line_lower = line.lower()
-        
-        # Check if line is a section header
         is_header = False
         for section, headers in section_headers.items():
             if any(header in line_lower for header in headers):
-                # Save previous section content
                 if current_section and current_content:
                     sections[current_section] = '\n'.join(current_content)
                 current_section = section
@@ -159,8 +156,6 @@ def split_into_sections(text):
                 is_header = True
                 section_found = True
                 break
-        
-        # If no section header found yet, try to detect section based on content
         if not section_found:
             if any(edu_word in line_lower for edu_word in ['university', 'college', 'school', 'b.tech', 'm.tech', 'phd']):
                 current_section = 'education'
@@ -177,18 +172,14 @@ def split_into_sections(text):
             elif any(lang_word in line_lower for lang_word in ['language', 'fluent', 'native', 'proficient']):
                 current_section = 'languages'
                 section_found = True
-        
         if current_section:
             current_content.append(line)
-    
-    # Save last section
     if current_section and current_content:
         sections[current_section] = '\n'.join(current_content)
-    
     return sections
 
-def extract_education(text):
-    """Extract education information"""
+def extract_education(text: str) -> List[str]:
+    """Extract education information from text."""
     education = []
     edu_patterns = [
         r'(?i)(bachelor|master|phd|b\.?s\.?|m\.?s\.?|b\.?e\.?|m\.?e\.?|b\.?tech|m\.?tech)',

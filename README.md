@@ -51,10 +51,8 @@ BiasAwareRecruitment/
 │   ├── model/              # AI/ML Models
 │   │   ├── fairness.py     # Bias detection algorithms
 │   │   ├── predict.py      # Candidate prediction model
-│   │   └── train_model.py  # Model training utilities
 │   ├── utils/              # Utility functions
 │   │   ├── resume_parser.py # Resume parsing engine
-│   │   └── data_preprocess.py # Data preprocessing
 │   └── requirements.txt    # Python dependencies
 ├── frontend/               # React Web Application
 │   ├── src/
