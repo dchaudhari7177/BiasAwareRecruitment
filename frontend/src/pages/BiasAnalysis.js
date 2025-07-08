@@ -395,10 +395,13 @@ const BiasAnalysis = () => {
                   }}
                 >
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    {bias.replace('_', ' ').toUpperCase()} DETECTED
+                    {(bias.type || '').replace('_', ' ').toUpperCase()} DETECTED
                   </Typography>
-                  <Typography variant="body2">
-                    Potential {bias.replace('_', ' ')} bias in resume content
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    {bias.explanation}
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontStyle: 'italic', color: '#b26a00' }}>
+                    Suggestion: {bias.suggestion}
                   </Typography>
                 </Alert>
               </Grid>

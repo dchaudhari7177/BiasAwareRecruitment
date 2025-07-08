@@ -1,4 +1,3 @@
-# backend/model/predict.py
 
 import pandas as pd
 import numpy as np
@@ -57,11 +56,32 @@ class AdvancedBiasAwarePredictor:
             'cultural_bias': ['native', 'foreign', 'international', 'local'],
             'language_bias': ['fluent', 'native speaker', 'accent', 'bilingual']
         }
-        
+        bias_explanations = {
+            'gender_bias': {
+                'explanation': 'Gendered language detected, which may introduce gender bias.',
+                'suggestion': 'Use gender-neutral terms and avoid pronouns or gendered job titles.'
+            },
+            'age_bias': {
+                'explanation': 'Age-related terms detected, which may introduce age bias.',
+                'suggestion': 'Avoid referencing age, seniority, or youth directly.'
+            },
+            'cultural_bias': {
+                'explanation': 'Cultural or nationality-related terms detected, which may introduce cultural bias.',
+                'suggestion': 'Focus on skills and experience rather than cultural or national background.'
+            },
+            'language_bias': {
+                'explanation': 'Language proficiency or accent references detected, which may introduce language bias.',
+                'suggestion': 'Only mention language skills if directly relevant to the job.'
+            }
+        }
         text_lower = text.lower()
         for bias_type, patterns in bias_patterns.items():
             if any(pattern in text_lower for pattern in patterns):
-                bias_indicators.append(bias_type)
+                bias_indicators.append({
+                    'type': bias_type,
+                    'explanation': bias_explanations[bias_type]['explanation'],
+                    'suggestion': bias_explanations[bias_type]['suggestion']
+                })
         
         return {
             'sentiment': 'positive' if sentiment_score > 0.1 else 'negative' if sentiment_score < -0.1 else 'neutral',

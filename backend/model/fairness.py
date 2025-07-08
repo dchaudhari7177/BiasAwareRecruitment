@@ -1,5 +1,3 @@
-# backend/model/fairness.py
-
 import pandas as pd
 import numpy as np
 from fairlearn.metrics import (
